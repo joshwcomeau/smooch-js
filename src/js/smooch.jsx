@@ -22,6 +22,7 @@ import { getConversation, sendMessage, connectFaye, disconnectFaye, handleConver
 import { observable } from 'utils/events';
 import { storage } from 'utils/storage';
 import { waitForPage } from 'utils/dom';
+import { getSubscription, extractPushToken } from 'utils/push';
 
 import { Root } from './root';
 
@@ -58,7 +59,7 @@ function renderLink() {
 function getDeviceId() {
     const SK_STORAGE = 'sk_deviceid';
     const deviceId = storage.getItem(SK_STORAGE) ||
-        uuid.v4().replace(/-/g, '');
+    uuid.v4().replace(/-/g, '');
 
     storage.setItem(SK_STORAGE, deviceId);
 
@@ -138,29 +139,36 @@ export class Smooch {
             store.dispatch(AppStateActions.unsetEmailReadonly());
         }
 
-        return Promise.resolve().then(() => {
+        return getSubscription().then((subscription) => {
             store.dispatch(setAuth({
                 jwt: jwt,
                 appToken: this.appToken
             }));
 
+            const device = {
+                platform: 'web',
+                id: getDeviceId(),
+                info: {
+                    sdkVersion: VERSION,
+                    URL: document.location.host,
+                    userAgent: navigator.userAgent,
+                    referrer: document.referrer,
+                    browserLanguage: navigator.language,
+                    currentUrl: document.location.href,
+                    currentTitle: document.title
+                }
+            };
+
+            if(subscription) {
+                device.pushNotificationToken = extractPushToken(subscription.endpoint);
+            }
+
             return login({
                 userId: userId,
-                device: {
-                    platform: 'web',
-                    id: getDeviceId(),
-                    info: {
-                        sdkVersion: VERSION,
-                        URL: document.location.host,
-                        userAgent: navigator.userAgent,
-                        referrer: document.referrer,
-                        browserLanguage: navigator.language,
-                        currentUrl: document.location.href,
-                        currentTitle: document.title
-                    }
-                }
+                device
             });
         }).then((loginResponse) => {
+        navigator.serviceWorker.controller.postMessage(store.getState());
             store.dispatch(setUser(loginResponse.appUser));
 
             if (loginResponse.publicKeys) {

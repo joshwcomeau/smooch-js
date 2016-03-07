@@ -11,7 +11,10 @@ module.exports = function(options) {
     var LICENSE = fs.readFileSync('LICENSE', 'utf8');
 
     var entry = {
-        smooch: ['./src/js/utils/polyfills', './src/js/main']
+        smooch: options.hotComponents ?
+            ['webpack/hot/dev-server', './src/js/utils/polyfills', './src/js/main'] :
+            ['./src/js/utils/polyfills', './src/js/main'],
+        sw: ['./src/js/serviceWorker']
     };
 
     var loaders = {
