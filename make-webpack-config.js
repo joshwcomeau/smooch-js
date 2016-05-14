@@ -60,7 +60,7 @@ module.exports = function(options) {
         });
     }
 
-    var externals = [];
+    var externals = options.externals || [];
     var modulesDirectories = ['node_modules', 'src', 'src/js'];
     var extensions = ['', '.web.js', '.js', '.jsx'];
     var root = path.join(__dirname, 'src');
@@ -69,7 +69,7 @@ module.exports = function(options) {
         'https://cdn.smooch.io/';
 
     var output = {
-        path: path.join(__dirname, 'dist'),
+        path: path.join(__dirname, options.outputDir || 'dist'),
         publicPath: publicPath,
         filename: '[name].js' + (options.longTermCaching ? '?[chunkhash]' : ''),
         chunkFilename: (options.devServer ? '[id].js' : '[name].js') + (options.longTermCaching ? '?[chunkhash]' : ''),
@@ -87,9 +87,7 @@ module.exports = function(options) {
     var plugins = [
         new webpack.DefinePlugin({
             VERSION: JSON.stringify(VERSION)
-        }),
-        new webpack.PrefetchPlugin('react'),
-        new webpack.PrefetchPlugin('react/lib/ReactComponentBrowserEnvironment')
+        })
     ];
 
 
@@ -113,6 +111,13 @@ module.exports = function(options) {
     });
     if (options.separateStylesheet) {
         plugins.push(new ExtractTextPlugin('[name].css' + (options.longTermCaching ? '?[contenthash]' : '')));
+    }
+
+    if (!options.npmBuild) {
+        plugins.push([
+            new webpack.PrefetchPlugin('react'),
+            new webpack.PrefetchPlugin('react/lib/ReactComponentBrowserEnvironment')
+        ])
     }
 
     if (options.minimize) {
